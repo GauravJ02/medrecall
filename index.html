@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-white dark:bg-[#000000]">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>MedRecall - Aditi's Spaced Revision Engine</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        appleBlue: '#007AFF',
+                        appleDarkBg: '#000000',
+                        appleDarkCard: '#1C1C1E',
+                        appleDarkBorder: '#3A3A3C',
+                        appleLightBg: '#F2F2F7',
+                        appleLightCard: '#FFFFFF',
+                        appleLightBorder: '#E5E5EA',
+                    }
+                }
+            }
+        }
+    </script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: -apple-system, 'SF Pro Display', 'Inter', BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .apple-card {
+            transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .apple-nav-blur {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .ios-active-scale:active {
+            transform: scale(0.97);
+            transition: transform 0.1s ease;
+        }
+
+        .ios-slide-up {
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+        }
+    </style>
+</head>
+
+<body
+    class="h-full flex flex-col justify-between overflow-hidden text-[#1C1C1E] dark:text-[#F2F2F7] bg-white dark:bg-[#000000] transition-colors duration-200">
+
+    <!-- Main Apple Interface Frame -->
+    <div
+        class="flex-1 flex flex-col max-w-md w-full mx-auto bg-white dark:bg-[#000000] h-full relative overflow-hidden pb-16 shadow-lg border-x border-appleLightBorder dark:border-appleDarkBorder transition-colors duration-200">
+
+        <!-- Header View -->
+        <header
+            class="apple-nav-blur sticky top-0 z-30 border-b border-appleLightBorder dark:border-appleDarkBorder bg-white/95 dark:bg-[#000000]/95 px-5 pt-6 pb-4 flex items-center justify-between transition-colors duration-200">
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight text-[#1C1C1E] dark:text-white">MedRecall</h1>
+                <p class="text-[10px] text-appleBlue font-bold uppercase tracking-wider flex items-center gap-1">
+                    <i class="fa-solid fa-user-doctor text-[9px]"></i> Personalized for Aditi
+                </p>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="text-right">
+                    <span id="activeSubjectCount"
+                        class="text-xs font-bold text-appleBlue bg-appleBlue/5 dark:bg-appleBlue/10 px-3 py-1.5 rounded-full border border-appleBlue/10">0
+                        Subjects</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Custom Notification Toast -->
+        <div id="iosToast"
+            class="fixed top-6 left-1/2 -translate-x-1/2 z-50 transform -translate-y-12 opacity-0 transition-all duration-300 w-11/12 max-w-xs bg-[#1C1C1E]/95 dark:bg-white/95 backdrop-blur-md text-white dark:text-[#1C1C1E] py-3 px-4 rounded-xl shadow-lg flex items-center gap-2.5">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600"></i>
+            <p id="toastMsg" class="text-xs font-semibold leading-snug"></p>
+        </div>
+
+        <!-- Custom Apple Confirmation Dialog Box -->
+        <div id="customConfirmModal"
+            class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+            <div
+                class="bg-white dark:bg-appleDarkCard rounded-2xl p-5 w-11/12 max-w-xs text-center border border-appleLightBorder dark:border-appleDarkBorder shadow-xl space-y-4">
+                <div class="space-y-1.5">
+                    <h3 id="confirmTitle" class="font-bold text-base text-[#1C1C1E] dark:text-white">Are you sure?</h3>
+                    <p id="confirmDesc" class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">This action
+                        cannot be undone.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button id="confirmCancelBtn"
+                        class="py-2.5 bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-neutral-200 dark:hover:bg-neutral-800 text-[#1C1C1E] dark:text-white font-bold text-xs rounded-xl active:scale-95 transition-all">Cancel</button>
+                    <button id="confirmProceedBtn"
+                        class="py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all">Delete</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Scrollable App Content -->
+        <main
+            class="flex-1 overflow-y-auto px-4 py-5 hide-scrollbar bg-appleLightBg/50 dark:bg-appleDarkBg transition-colors duration-200">
+
+            <!-- SECTION 1: TODAY'S FOCUS DASHBOARD -->
+            <section id="tabTodayView" class="space-y-4">
+
+                <!-- Clinical Study Dashboard Card -->
+                <div
+                    class="apple-card p-5 relative overflow-hidden bg-gradient-to-br from-white to-neutral-50 dark:from-[#1C1C1E] dark:to-[#1C1C1E] border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div
+                        class="absolute -right-3 -top-3 w-16 h-16 bg-blue-100/10 dark:bg-blue-900/5 rounded-full blur-xl">
+                    </div>
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-1.5 text-appleBlue">
+                                <i class="fa-solid fa-graduation-cap text-xs"></i>
+                                <span class="text-[9px] font-extrabold uppercase tracking-wider">Active Memory
+                                    Curve</span>
+                            </div>
+                        </div>
+                        <div
+                            class="border-t border-appleLightBorder/40 dark:border-appleDarkBorder/40 pt-1.5 flex justify-between items-center">
+                            <div>
+                                <h3 class="text-base font-extrabold text-[#1C1C1E] dark:text-white tracking-tight">
+                                    Aditi's Study Console</h3>
+                                <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7]">Optimal Spaced Repetition</p>
+                            </div>
+                        </div>
+                        <p
+                            class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed border-t border-appleLightBorder/40 dark:border-appleDarkBorder/40 pt-2">
+                            Maximize long-term diagnostic recall for your upcoming exams. Daily systematic revisions
+                            solidify active clinical reasoning in your memory.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Spaced Repetition Visual Calendar Grid -->
+                <div
+                    class="apple-card p-4 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm space-y-3">
+                    <div class="flex items-center justify-between cursor-pointer select-none"
+                        onclick="toggleCalendarCollapsed()">
+                        <div class="flex items-center gap-2 text-appleBlue">
+                            <i class="fa-solid fa-calendar-days text-sm"></i>
+                            <span class="text-xs font-bold text-[#1C1C1E] dark:text-white">Revision Calendar
+                                Schedule</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span id="calendarSelectedFilterText"
+                                class="text-[9px] bg-appleBlue/10 text-appleBlue px-2 py-0.5 rounded font-semibold hidden">Filtered</span>
+                            <i id="calendarToggleChevron"
+                                class="fa-solid fa-chevron-down text-xs text-neutral-400 dark:text-neutral-500 transition-transform duration-200"></i>
+                        </div>
+                    </div>
+
+                    <div id="calendarContainerBody"
+                        class="hidden space-y-3 pt-2 border-t border-appleLightBorder/40 dark:border-appleDarkBorder/40">
+                        <!-- Month Selector -->
+                        <div class="flex items-center justify-between text-xs font-bold">
+                            <button onclick="navigateCalendarMonth(-1)"
+                                class="w-7 h-7 rounded-lg bg-appleLightBg dark:bg-[#2C2C2E] flex items-center justify-center text-neutral-600 dark:text-neutral-400 active:scale-95 transition-all"><i
+                                    class="fa-solid fa-chevron-left text-[10px]"></i></button>
+                            <span id="calendarMonthYearLabel" class="text-[#1C1C1E] dark:text-white"></span>
+                            <button onclick="navigateCalendarMonth(1)"
+                                class="w-7 h-7 rounded-lg bg-appleLightBg dark:bg-[#2C2C2E] flex items-center justify-center text-neutral-600 dark:text-neutral-400 active:scale-95 transition-all"><i
+                                    class="fa-solid fa-chevron-right text-[10px]"></i></button>
+                        </div>
+
+                        <!-- Day Columns -->
+                        <div
+                            class="grid grid-cols-7 gap-1 text-center text-[10px] text-neutral-400 dark:text-neutral-500 font-bold">
+                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                        </div>
+
+                        <!-- Days Grid -->
+                        <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1 text-center"></div>
+
+                        <!-- Reset Filter Button -->
+                        <div id="calendarResetBtnContainer" class="flex justify-end hidden pt-1">
+                            <button onclick="resetCalendarFilter()"
+                                class="text-[9px] font-bold text-appleBlue bg-appleBlue/5 hover:bg-appleBlue/10 px-2.5 py-1.5 rounded-lg border border-appleBlue/10 transition-all flex items-center gap-1">
+                                <i class="fa-solid fa-rotate-left"></i> Show All Overdue & Due
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Retention Circular Progress Ring -->
+                <div
+                    class="apple-card p-5 flex items-center justify-between bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="space-y-1">
+                        <p
+                            class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7] font-extrabold uppercase tracking-widest">
+                            Active Retention Score</p>
+                        <h3 class="text-2xl font-extrabold text-[#1C1C1E] dark:text-white" id="velocityPercent">100%
+                        </h3>
+                        <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed max-w-[210px]"
+                            id="velocityDesc">Begin logging clinical revisions to train your curve.</p>
+                    </div>
+                    <div class="relative w-16 h-16 flex items-center justify-center shrink-0">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="32" cy="32" r="26" stroke="currentColor"
+                                class="text-appleLightBg dark:text-[#2C2C2E]" stroke-width="4.5" fill="transparent" />
+                            <circle id="velocityRing" cx="32" cy="32" r="26" stroke="#007AFF" stroke-width="4.5"
+                                fill="transparent" stroke-dasharray="163" stroke-dashoffset="163"
+                                class="transition-all duration-700 ease-out" />
+                        </svg>
+                        <i class="fa-solid fa-stethoscope absolute text-appleBlue text-sm"></i>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between px-1 pt-1">
+                    <div>
+                        <h2 class="text-lg font-bold text-[#1C1C1E] dark:text-white" id="scheduleListHeader">Today's
+                            Schedule</h2>
+                        <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7]" id="scheduleListSubheader">Topics sorted
+                            by optimal spaced repetition intervals</p>
+                    </div>
+                    <span id="dueBadge"
+                        class="text-xs font-extrabold bg-appleBlue/10 text-appleBlue border border-appleBlue/20 px-3 py-1 rounded-full">0
+                        Due</span>
+                </div>
+
+                <div id="dueTopicsList" class="space-y-2.5">
+                    <!-- Dynamic Spaced Repetition Due Topics loaded here -->
+                </div>
+            </section>
+
+            <!-- SECTION 2: SUBJECTS & EXAMS CONTROL PANEL -->
+            <section id="tabSyllabusView" class="space-y-4 hidden">
+                <div class="px-1">
+                    <h2 class="text-lg font-bold text-[#1C1C1E] dark:text-white">Syllabus & Exam Timelines</h2>
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7]">Set custom exam dates for each clinical
+                        subject</p>
+                </div>
+
+                <div class="relative">
+                    <i
+                        class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8E8E93] dark:text-[#A2A2A7] text-xs"></i>
+                    <input type="text" id="syllabusSearch" oninput="renderSyllabus()"
+                        placeholder="Search custom topics or systems..."
+                        class="w-full text-sm pl-9 pr-4 py-2.5 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-xl focus:outline-none focus:ring-1 focus:ring-appleBlue placeholder-[#8E8E93] dark:placeholder-[#A2A2A7] text-[#1C1C1E] dark:text-white transition-colors duration-200">
+                </div>
+
+                <div id="syllabusAccordionContainer" class="space-y-3">
+                    <!-- Dynamic Subject-wise Accordions with custom exam dates populate here -->
+                </div>
+            </section>
+
+            <!-- SECTION 3: ADD TOPIC VIEW -->
+            <section id="tabAddTopicView" class="space-y-4 hidden">
+                <div class="px-1">
+                    <h2 class="text-lg font-bold text-[#1C1C1E] dark:text-white">Log New Revision</h2>
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7]">Add topics immediately after studying to
+                        calculate initial curve intervals</p>
+                </div>
+
+                <form onsubmit="handleNewTopicSubmit(event)"
+                    class="apple-card p-5 space-y-4 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+
+                    <!-- Dynamic/Autofill Subject Selection -->
+                    <div class="space-y-1.5">
+                        <label
+                            class="text-[9px] font-bold text-[#8E8E93] dark:text-[#A2A2A7] uppercase tracking-wider block">Clinical
+                            Subject Name</label>
+                        <input type="text" id="addSubjectInput" required
+                            placeholder="e.g., Medicine, Ophthalmology, ENT, Surgery"
+                            class="w-full text-sm px-3.5 py-3 bg-appleLightBg/40 dark:bg-[#2C2C2E]/40 border border-appleLightBorder dark:border-appleDarkBorder rounded-xl focus:outline-none focus:ring-1 focus:ring-appleBlue placeholder-[#8E8E93] dark:placeholder-[#A2A2A7] text-[#1C1C1E] dark:text-white font-medium">
+
+                        <!-- Quick Suggestion Pills dynamically populated -->
+                        <div id="quickSubjectSuggestions" class="flex flex-wrap gap-1.5 pt-1"></div>
+                    </div>
+
+                    <!-- Topic Input -->
+                    <div class="space-y-1.5">
+                        <label
+                            class="text-[9px] font-bold text-[#8E8E93] dark:text-[#A2A2A7] uppercase tracking-wider block">Topic
+                            Name / Clinical Concept</label>
+                        <input type="text" id="addTopicInput" required
+                            placeholder="e.g., Acute Angle Closure Glaucoma, Otitis Media"
+                            class="w-full text-sm px-3.5 py-3 bg-appleLightBg/40 dark:bg-[#2C2C2E]/40 border border-appleLightBorder dark:border-appleDarkBorder rounded-xl focus:outline-none focus:ring-1 focus:ring-appleBlue placeholder-[#8E8E93] dark:placeholder-[#A2A2A7] text-[#1C1C1E] dark:text-white font-medium">
+                    </div>
+
+                    <!-- Initial Calibration Selectors -->
+                    <div class="space-y-2">
+                        <label
+                            class="text-[9px] font-bold text-[#8E8E93] dark:text-[#A2A2A7] uppercase tracking-wider block">How
+                            was your memory of this topic just now?</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="setInitialFormConfidence('Struggled')" id="btnConfStruggled"
+                                class="py-2.5 rounded-xl text-center font-bold text-xs border border-transparent bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 transition-all ios-active-scale">
+                                Struggled
+                            </button>
+                            <button type="button" onclick="setInitialFormConfidence('Hesitant')" id="btnConfHesitant"
+                                class="py-2.5 rounded-xl text-center font-bold text-xs border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 transition-all ios-active-scale">
+                                Hesitant
+                            </button>
+                            <button type="button" onclick="setInitialFormConfidence('Mastered')" id="btnConfMastered"
+                                class="py-2.5 rounded-xl text-center font-bold text-xs border border-transparent bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 transition-all ios-active-scale">
+                                Mastered
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit"
+                        class="w-full py-3.5 bg-appleBlue hover:bg-appleBlue/95 text-white font-bold text-xs rounded-xl active:scale-95 transition-all shadow-sm">
+                        Calculate & Save Spaced Schedule
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION 4: REMINDERS, BACKUP & SYSTEM PREFERENCES -->
+            <section id="tabRemindersView" class="space-y-4 hidden">
+                <div class="px-1">
+                    <h2 class="text-lg font-bold text-[#1C1C1E] dark:text-white">Settings & Preferences</h2>
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7]">Adjust display settings, back up databases,
+                        and set alerts</p>
+                </div>
+
+                <!-- Custom Gift Message Card (Personalized for Aditi) -->
+                <div
+                    class="apple-card p-5 space-y-3.5 bg-gradient-to-br from-blue-50/20 to-neutral-50/20 dark:from-[#1C1C1E] dark:to-neutral-900/10 border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm relative overflow-hidden">
+                    <div class="absolute right-4 top-4 text-appleBlue/5 dark:text-white/5 text-5xl">
+                        <i class="fa-solid fa-quote-right"></i>
+                    </div>
+                    <div class="flex items-center gap-2 text-appleBlue">
+                        <i class="fa-solid fa-envelope text-xs"></i>
+                        <h3 class="font-bold text-xs uppercase tracking-wider text-[#1C1C1E] dark:text-white">A Note For
+                            Aditi</h3>
+                    </div>
+
+                    <p
+                        class="text-xs text-neutral-600 dark:text-neutral-300 italic leading-relaxed pt-2 border-t border-appleLightBorder dark:border-appleDarkBorder">
+                        "Aditi you are the most real, hardworking and the dedicated women I have ever met. You inspire
+                        me to be a good person and help me motivate myself to study hard and achieve my dreams. So here
+                        is a small gesture from me for you to help you with your studies and get good grades in your
+                        exam"
+                    </p>
+                </div>
+
+                <!-- Dark Mode System Configuration Card -->
+                <div
+                    class="apple-card p-5 space-y-4 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Display Appearance</h3>
+                            <p class="text-[11px] text-[#8E8E93] dark:text-[#A2A2A7] max-w-[220px]">Switch between
+                                clinical light theme and native OLED dark mode.</p>
+                        </div>
+                        <button onclick="toggleDarkMode()" id="settingsThemeBtn"
+                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-appleLightBg dark:bg-[#2C2C2E]/60 text-[#1C1C1E] dark:text-white border border-appleLightBorder dark:border-appleDarkBorder ios-active-scale">
+                            <i id="settingsThemeIcon" class="fa-solid fa-moon mr-1.5"></i> <span
+                                id="settingsThemeText">Theme</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Data Backup & Restore Card -->
+                <div
+                    class="apple-card p-5 space-y-4 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="space-y-1">
+                        <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Database Backup & Recovery</h3>
+                        <p class="text-[11px] text-[#8E8E93] dark:text-[#A2A2A7]">Export a backup file to your phone to
+                            ensure you never lose your study history, or restore it anytime.</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1">
+                        <button onclick="exportBackup()"
+                            class="py-2.5 bg-appleBlue/10 dark:bg-appleBlue/20 text-appleBlue font-bold text-xs rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-appleBlue/20">
+                            <i class="fa-solid fa-download text-[10px]"></i> Backup
+                        </button>
+                        <label
+                            class="py-2.5 bg-[#F2F2F7] dark:bg-[#2C2C2E] hover:bg-neutral-200 dark:hover:bg-neutral-800 text-[#1C1C1E] dark:text-white font-bold text-xs rounded-xl active:scale-95 transition-all flex items-center justify-center gap-1.5 border border-appleLightBorder dark:border-appleDarkBorder cursor-pointer text-center">
+                            <i class="fa-solid fa-upload text-[10px]"></i> Restore
+                            <input type="file" id="restoreFileInput" accept=".json" onchange="importBackup(event)"
+                                class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Local Push Alerts Card -->
+                <div
+                    class="apple-card p-5 space-y-4 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div class="space-y-0.5">
+                            <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Enable Push Reminders</h3>
+                            <p class="text-[11px] text-[#8E8E93] dark:text-[#A2A2A7] max-w-[220px]">Get daily alerts
+                                when clinical topics are due for revision.</p>
+                        </div>
+                        <button onclick="requestNotificationPermission()" id="pushToggleBtn"
+                            class="px-4 py-2 rounded-xl text-xs font-bold transition-all bg-appleBlue/10 dark:bg-appleBlue/20 text-appleBlue border border-appleBlue/20 ios-active-scale">
+                            Enable
+                        </button>
+                    </div>
+
+                    <div id="pushStatusInfo"
+                        class="text-center py-2 px-3 rounded-lg bg-appleLightBg dark:bg-appleDarkBg text-[11px] text-[#8E8E93] dark:text-[#A2A2A7] border border-appleLightBorder dark:border-appleDarkBorder">
+                        Checking device alert permissions...
+                    </div>
+                </div>
+
+                <!-- Guided Tutorial: How to get standalone notifications on Apple Safari iOS -->
+                <div
+                    class="apple-card p-5 space-y-3.5 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="flex items-center gap-2.5 text-appleBlue">
+                        <i class="fa-brands fa-apple text-lg"></i>
+                        <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">iPhone Safari PWA Guide</h3>
+                    </div>
+
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">
+                        To run MedRecall exactly like a native app on your iPhone, follow these steps:
+                    </p>
+
+                    <div class="space-y-3 pt-1">
+                        <div class="flex gap-3">
+                            <span
+                                class="w-5 h-5 rounded-full bg-appleLightBg dark:bg-appleDarkBg text-[#1C1C1E] dark:text-white text-[10px] font-bold flex items-center justify-center shrink-0 border border-appleLightBorder dark:border-appleDarkBorder">1</span>
+                            <div class="text-xs">
+                                <p class="font-bold text-[#1C1C1E] dark:text-white">Add to Home Screen</p>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">Tap the Safari Share icon <i
+                                        class="fa-solid fa-arrow-up-from-bracket text-appleBlue mx-0.5"></i> and select
+                                    <span class="font-semibold text-neutral-700 dark:text-neutral-300">"Add to Home
+                                        Screen"</span>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <span
+                                class="w-5 h-5 rounded-full bg-appleLightBg dark:bg-[#1C1C1E] text-[#1C1C1E] dark:text-white text-[10px] font-bold flex items-center justify-center shrink-0 border border-appleLightBorder dark:border-appleDarkBorder">2</span>
+                            <div class="text-xs">
+                                <p class="font-bold text-[#1C1C1E] dark:text-white">Allow Permissions</p>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">Launch the app from your home
+                                    screen and toggle "Enable Push Reminders" above.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- iPad Sync & Multi-Device Guide -->
+                <div
+                    class="apple-card p-5 space-y-3.5 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                    <div class="flex items-center gap-2.5 text-appleBlue">
+                        <i class="fa-solid fa-tablet-screen-button text-base"></i>
+                        <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">iPad Sync & Multi-Device Guide</h3>
+                    </div>
+
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">
+                        Your study schedules are stored locally on your device for offline speed and privacy. You can
+                        easily share and sync your data with your iPad:
+                    </p>
+
+                    <div class="space-y-3 pt-1">
+                        <div class="flex gap-3">
+                            <span
+                                class="w-5 h-5 rounded-full bg-appleLightBg dark:bg-[#1C1C1E] text-[#1C1C1E] dark:text-white text-[10px] font-bold flex items-center justify-center shrink-0 border border-appleLightBorder dark:border-appleDarkBorder">1</span>
+                            <div class="text-xs">
+                                <p class="font-bold text-[#1C1C1E] dark:text-white">Export on iPhone</p>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">Go to the <span
+                                        class="font-semibold text-neutral-700 dark:text-neutral-300">Database Backup &
+                                        Recovery</span> section above and tap <span
+                                        class="font-semibold text-appleBlue">Backup</span> to save your database.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <span
+                                class="w-5 h-5 rounded-full bg-appleLightBg dark:bg-[#1C1C1E] text-[#1C1C1E] dark:text-white text-[10px] font-bold flex items-center justify-center shrink-0 border border-appleLightBorder dark:border-appleDarkBorder">2</span>
+                            <div class="text-xs">
+                                <p class="font-bold text-[#1C1C1E] dark:text-white">AirDrop to iPad</p>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">AirDrop the downloaded backup <code
+                                        class="bg-neutral-100 dark:bg-neutral-850 px-1.5 py-0.5 rounded font-mono text-[9px] text-neutral-600 dark:text-neutral-400">.json</code>
+                                    file directly to your iPad.</p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <span
+                                class="w-5 h-5 rounded-full bg-appleLightBg dark:bg-[#1C1C1E] text-[#1C1C1E] dark:text-white text-[10px] font-bold flex items-center justify-center shrink-0 border border-appleLightBorder dark:border-appleDarkBorder">3</span>
+                            <div class="text-xs">
+                                <p class="font-bold text-[#1C1C1E] dark:text-white">Restore on iPad</p>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">Open this app in Safari on your
+                                    iPad, scroll to <span
+                                        class="font-semibold text-neutral-700 dark:text-neutral-300">Restore</span>, and
+                                    select the AirDropped file to sync instantly!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: ENGINE SPECS TAB (THE EXPLAINER SHEET) -->
+            <section id="tabEngineSpecsView" class="space-y-4 hidden">
+                <div class="px-1">
+                    <h2 class="text-lg font-bold text-[#1C1C1E] dark:text-white">The Scheduling Algorithm</h2>
+                    <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7]">How background calculations organize your
+                        study loops</p>
+                </div>
+
+                <div class="space-y-4 text-[#1C1C1E] dark:text-white">
+                    <!-- Block 1: The Principle -->
+                    <div
+                        class="apple-card p-5 space-y-3 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-2 text-appleBlue">
+                            <i class="fa-solid fa-brain text-base"></i>
+                            <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Adaptive Ebbinghaus Curves</h3>
+                        </div>
+                        <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">
+                            Humans forget abstract details exponentially. MedRecall tracks recall quality after each
+                            session and mathematically stretches the next interval, keeping study workloads low while
+                            locking items in long-term memory.
+                        </p>
+                    </div>
+
+                    <!-- Block 2: Memory Multipliers -->
+                    <div
+                        class="apple-card p-5 space-y-3 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-2 text-appleBlue">
+                            <i class="fa-solid fa-gears text-base"></i>
+                            <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Dynamic Interval Calculation
+                            </h3>
+                        </div>
+                        <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">
+                            When finishing a topic, self-assess. The scheduler instantly updates the next review date
+                            using this formula:
+                        </p>
+                        <div
+                            class="bg-appleLightBg dark:bg-appleDarkBg rounded-lg p-3 text-center font-mono text-[11px] text-neutral-800 dark:text-neutral-200 border border-appleLightBorder dark:border-appleDarkBorder">
+                            Next Due = Today + (N × Multiplier)
+                        </div>
+                        <div class="space-y-2 pt-1">
+                            <div class="flex items-start gap-2.5 text-xs">
+                                <span
+                                    class="px-2 py-0.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/60 text-rose-600 dark:text-rose-400 font-bold rounded text-[10px]">Struggled</span>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] text-[11px]">Resets multiplier. Next review
+                                    falls exactly <span class="font-bold text-[#1C1C1E] dark:text-white">1 day</span>
+                                    later to reinforce memory.</p>
+                            </div>
+                            <div class="flex items-start gap-2.5 text-xs">
+                                <span
+                                    class="px-2 py-0.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900/60 text-amber-700 dark:text-amber-400 font-bold rounded text-[10px]">Hesitant</span>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] text-[11px]">Progressive schedule growth.
+                                    Multiplier is scaled safely by <span
+                                        class="font-bold text-[#1C1C1E] dark:text-white">1.8x</span>.</p>
+                            </div>
+                            <div class="flex items-start gap-2.5 text-xs">
+                                <span
+                                    class="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 text-emerald-600 dark:text-emerald-400 font-bold rounded text-[10px]">Mastered</span>
+                                <p class="text-[#8E8E93] dark:text-[#A2A2A7] text-[11px]">Rapid leap. Multiplier is
+                                    accelerated by <span class="font-bold text-[#1C1C1E] dark:text-white">2.6x</span>,
+                                    saving massive study hours.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 3: Proximity Compression -->
+                    <div
+                        class="apple-card p-5 space-y-3 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                        <div class="flex items-center gap-2 text-appleBlue">
+                            <i class="fa-solid fa-clock-rotate-left text-base"></i>
+                            <h3 class="font-bold text-sm text-[#1C1C1E] dark:text-white">Subject-Specific Exam
+                                Compression (EPC)</h3>
+                        </div>
+                        <p class="text-xs text-[#8E8E93] dark:text-[#A2A2A7] leading-relaxed">
+                            Each subject has a custom target exam date. If standard spaced repetition intervals push a
+                            topic's next due date past its exam, the algorithm intercepts this and compresses the review
+                            window to guarantee a vital final pass 3 days before exam morning.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Apple Tab Navigation Bar (Locked strictly on the bottom) -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-[#1C1C1E]/95 border-t border-appleLightBorder dark:border-appleDarkBorder flex justify-around items-center z-40 px-2 transition-colors duration-200">
+            <!-- Tab 1: Today -->
+            <button onclick="switchTab('Today')" id="navToday"
+                class="flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-appleBlue transition-all">
+                <i class="fa-solid fa-calendar-check text-base"></i>
+                <span class="text-[9px] font-bold">Today</span>
+            </button>
+
+            <!-- Tab 2: Syllabus -->
+            <button onclick="switchTab('Syllabus')" id="navSyllabus"
+                class="flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all">
+                <i class="fa-solid fa-book-medical text-base"></i>
+                <span class="text-[9px] font-bold">Syllabus</span>
+            </button>
+
+            <!-- Tab 3: Centered Action Plus Button (Add Topic) -->
+            <div class="flex-1 flex justify-center -mt-7 relative z-50">
+                <button onclick="switchTab('AddTopic')" id="navAddTopic"
+                    class="w-14 h-14 rounded-full bg-appleBlue text-white flex items-center justify-center shadow-xl active:scale-95 transform hover:scale-105 transition-all outline-none border-4 border-white dark:border-[#000000]">
+                    <i class="fa-solid fa-plus text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Tab 4: Settings -->
+            <button onclick="switchTab('Reminders')" id="navReminders"
+                class="flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all">
+                <i class="fa-solid fa-sliders text-base"></i>
+                <span class="text-[9px] font-bold">Settings</span>
+            </button>
+
+            <!-- Tab 5: Science -->
+            <button onclick="switchTab('EngineSpecs')" id="navEngineSpecs"
+                class="flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all">
+                <i class="fa-solid fa-gears text-base"></i>
+                <span class="text-[9px] font-bold">Science</span>
+            </button>
+        </nav>
+
+        <!-- Active Recall Challenge Slide Drawer (Modal) -->
+        <div id="reviewSheet"
+            class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-end justify-center hidden opacity-0 transition-opacity duration-300">
+            <div
+                class="bg-white dark:bg-appleDarkCard rounded-t-2xl p-6 w-full max-w-md space-y-5 max-h-[75vh] overflow-y-auto transform translate-y-full ios-slide-up shadow-2xl border-t border-appleLightBorder dark:border-appleDarkBorder">
+
+                <div
+                    class="flex items-center justify-between border-b border-appleLightBorder dark:border-appleDarkBorder pb-3">
+                    <span id="modalSubjectBadge"
+                        class="text-[9px] font-extrabold uppercase px-2.5 py-1 bg-neutral-100 dark:bg-neutral-800 text-[#8E8E93] dark:text-[#A2A2A7] rounded border border-appleLightBorder dark:border-appleDarkBorder">Subject</span>
+                    <button onclick="closeReviewModal()"
+                        class="w-8 h-8 rounded-full bg-[#F2F2F7] dark:bg-[#2C2C2E] flex items-center justify-center text-neutral-500 dark:text-neutral-400 ios-active-scale">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4 text-center">
+                    <div>
+                        <span
+                            class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7] font-bold uppercase tracking-widest">Active
+                            Recall Prompt</span>
+                        <h3 id="modalTopicTitle" class="text-xl font-bold text-[#1C1C1E] dark:text-white mt-1 px-2">
+                            Topic Name</h3>
+                    </div>
+
+                    <!-- Apple Active Recall Shield Panel -->
+                    <div id="recallShield"
+                        class="bg-appleLightBg/50 dark:bg-[#2C2C2E]/50 rounded-2xl p-6 text-center border border-appleLightBorder dark:border-appleDarkBorder flex flex-col items-center justify-center space-y-3">
+                        <div
+                            class="w-12 h-12 rounded-full bg-appleBlue/10 flex items-center justify-center text-appleBlue text-lg">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-[#1C1C1E] dark:text-white">Formulate the Answer Mentally</h4>
+                        <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] max-w-[240px] leading-relaxed">Wait!
+                            Recall diagnostic guidelines, drugs of choice, or clinical criteria before grading yourself.
+                        </p>
+                        <button onclick="unveilRecallNotes()"
+                            class="px-5 py-2.5 bg-appleBlue text-white rounded-xl text-xs font-bold transition-all ios-active-scale mt-1">
+                            Assess & Rate My Memory
+                        </button>
+                    </div>
+
+                    <!-- Interactive Quality Selector -->
+                    <div id="qualitySelectorArea" class="space-y-3 hidden">
+                        <h4
+                            class="text-[10px] font-bold text-[#8E8E93] dark:text-[#A2A2A7] uppercase tracking-wider text-left pl-1">
+                            How was your recall?</h4>
+                        <div class="grid grid-cols-3 gap-2.5">
+                            <button onclick="submitRecallResult('Struggled')"
+                                class="py-3 px-1 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/20 text-rose-700 dark:text-rose-400 text-center flex flex-col items-center justify-center ios-active-scale">
+                                <i class="fa-regular fa-face-frown text-lg mb-1 text-rose-500"></i>
+                                <span class="font-extrabold text-[11px]">Struggled</span>
+                                <span class="text-[8px] text-rose-500/80 dark:text-rose-400/80 font-bold mt-0.5">Reset
+                                    (1 Day)</span>
+                            </button>
+                            <button onclick="submitRecallResult('Hesitant')"
+                                class="py-3 px-1 rounded-xl border border-amber-200 dark:border-amber-900/60 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 text-center flex flex-col items-center justify-center ios-active-scale">
+                                <i class="fa-regular fa-face-meh text-lg mb-1 text-amber-500"></i>
+                                <span class="font-extrabold text-[11px]">Hesitant</span>
+                                <span class="text-[8px] text-amber-500/80 dark:text-amber-400/80 font-bold mt-0.5">Scale
+                                    (1.8x)</span>
+                            </button>
+                            <button onclick="submitRecallResult('Mastered')"
+                                class="py-3 px-1 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-400 text-center flex flex-col items-center justify-center ios-active-scale">
+                                <i class="fa-regular fa-face-smile text-lg mb-1 text-emerald-500"></i>
+                                <span class="font-extrabold text-[11px]">Mastered</span>
+                                <span
+                                    class="text-[8px] text-emerald-500/80 dark:text-emerald-400/80 font-bold mt-0.5 font-semibold">Defer
+                                    (2.6x)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Core Database State
+        let topicsData = [];
+        let subjectsConfig = {}; // Map of custom subjects: { name: { examDate: YYYY-MM-DD } }
+
+        let selectedTab = 'Today';
+        let currentFormConfidence = 'Hesitant';
+        let activeReviewTopic = null;
+
+        // Calendar-specific state variables
+        let calendarDate = new Date(); // Month/Year display index
+        let selectedCalendarDay = null; // Filtering timestamp for specific date (normalized to midnight)
+
+        // Custom Confirm callback
+        let onConfirmProceed = null;
+
+        window.onload = function () {
+            initTheme();
+            loadLocalCache();
+            switchTab('Today');
+            updatePushSettingsUI();
+            initCalendarUI();
+        };
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('medrecall_theme_aditi');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.documentElement.classList.add('dark');
+                updateThemeButtonUI(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeButtonUI(false);
+            }
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.classList.contains('dark');
+            if (isDark) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('medrecall_theme_aditi', 'light');
+                updateThemeButtonUI(false);
+                showToast("Light Mode enabled");
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('medrecall_theme_aditi', 'dark');
+                updateThemeButtonUI(true);
+                showToast("Dark Mode enabled");
+            }
+            renderTodayDashboard();
+            renderSyllabus();
+            renderCalendarDays();
+        }
+
+        function updateThemeButtonUI(isDark) {
+            const btnIcon = document.getElementById('settingsThemeIcon');
+            const btnText = document.getElementById('settingsThemeText');
+            if (isDark) {
+                if (btnIcon) btnIcon.className = "fa-solid fa-sun mr-1.5 text-amber-400";
+                if (btnText) btnText.innerText = "Light Mode";
+            } else {
+                if (btnIcon) btnIcon.className = "fa-solid fa-moon mr-1.5";
+                if (btnText) btnText.innerText = "Dark Mode";
+            }
+        }
+
+        function loadLocalCache() {
+            const savedTopics = localStorage.getItem('medrecall_topics_aditi_v1');
+            const savedSubjects = localStorage.getItem('medrecall_subjects_aditi_v1');
+
+            if (savedTopics) {
+                topicsData = JSON.parse(savedTopics);
+            } else {
+                // Pre-populate sample topics customized for Aditi
+                topicsData = [
+                    {
+                        id: 'seed-1',
+                        subject: 'Ophthalmology',
+                        name: 'Primary Angle Closure Glaucoma Diagnosis',
+                        confidence: 'Hesitant',
+                        repetitions: 1,
+                        interval: 2,
+                        lastReviewed: new Date().getTime(),
+                        nextDue: new Date().getTime()
+                    },
+                    {
+                        id: 'seed-2',
+                        subject: 'ENT',
+                        name: 'Complications of Cholesteatoma',
+                        confidence: 'Struggled',
+                        repetitions: 0,
+                        interval: 1,
+                        lastReviewed: new Date().getTime() - (24 * 60 * 60 * 1000),
+                        nextDue: new Date().getTime()
+                    }
+                ];
+            }
+
+            if (savedSubjects) {
+                subjectsConfig = JSON.parse(savedSubjects);
+            } else {
+                // Initialize custom dynamic exam dates roughly 60 days out
+                const sixtyDaysOut = new Date(new Date().getTime() + (60 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                subjectsConfig = {
+                    'Ophthalmology': { examDate: sixtyDaysOut },
+                    'ENT': { examDate: sixtyDaysOut }
+                };
+            }
+
+            cleanDatabaseSchemaOrphans();
+            saveLocalCache();
+        }
+
+        function cleanDatabaseSchemaOrphans() {
+            topicsData.forEach(t => {
+                if (t.subject && !subjectsConfig[t.subject]) {
+                    const defaultDate = new Date(new Date().getTime() + (90 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                    subjectsConfig[t.subject] = { examDate: defaultDate };
+                }
+            });
+        }
+
+        function saveLocalCache() {
+            localStorage.setItem('medrecall_topics_aditi_v1', JSON.stringify(topicsData));
+            localStorage.setItem('medrecall_subjects_aditi_v1', JSON.stringify(subjectsConfig));
+            updateOverdueSystemIcon();
+        }
+
+        // Database Backup Operations
+        function exportBackup() {
+            const backupData = {
+                topics: topicsData,
+                subjects: subjectsConfig
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            const dateStr = new Date().toISOString().split('T')[0];
+            downloadAnchor.setAttribute("download", `medrecall_backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast("Backup downloaded successfully!");
+        }
+
+        function importBackup(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.topics && imported.subjects) {
+                        topicsData = imported.topics;
+                        subjectsConfig = imported.subjects;
+                        saveLocalCache();
+                        showToast("Database restored successfully!");
+                        // Refresh all UI elements
+                        renderTodayDashboard();
+                        renderSyllabus();
+                        renderCalendarDays();
+                        const subCount = Object.keys(subjectsConfig).length;
+                        document.getElementById('activeSubjectCount').innerText = `${subCount} ${subCount === 1 ? 'Subject' : 'Subjects'}`;
+                    } else {
+                        showToast("Invalid backup file structure.", true);
+                    }
+                } catch (err) {
+                    showToast("Error reading backup file.", true);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function requestNotificationPermission() {
+            if (typeof Notification === 'undefined') {
+                showToast("Web alerts are not supported on this device.", true);
+                return;
+            }
+
+            Notification.requestPermission().then(permission => {
+                updatePushSettingsUI();
+                if (permission === 'granted') {
+                    showToast("Alert notifications allowed!");
+                    new Notification("MedRecall Active", {
+                        body: "Dr. Aditi, dynamic spaced revision loop alerts are now enabled.",
+                        icon: "https://placehold.co/128x128/007AFF/ffffff?text=Med"
+                    });
+                } else {
+                    showToast("Notification permission denied.", true);
+                }
+            });
+        }
+
+        function updatePushSettingsUI() {
+            const statusBox = document.getElementById('pushStatusInfo');
+            const pushBtn = document.getElementById('pushToggleBtn');
+
+            if (!statusBox || !pushBtn) return;
+
+            if (typeof Notification === 'undefined') {
+                statusBox.innerText = "🚨 Web Notifications are unsupported in this web browser.";
+                pushBtn.className = "hidden";
+                return;
+            }
+
+            if (Notification.permission === 'granted') {
+                statusBox.innerHTML = "<span class='text-emerald-500 font-bold'>✓ Alerts Active</span>. We will remind you locally of due MBBS topics daily.";
+                pushBtn.innerText = "Enabled";
+                pushBtn.disabled = true;
+                pushBtn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-emerald-100 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-200/50 cursor-default";
+            } else if (Notification.permission === 'denied') {
+                statusBox.innerHTML = "<span class='text-rose-500 font-bold'>🚨 Blocked</span>. Please open iOS Settings -> Safari -> Notifications to permit alerts.";
+                pushBtn.innerText = "Blocked";
+                pushBtn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-rose-100 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-200/50 cursor-default";
+            } else {
+                statusBox.innerText = "System Alerts: Requesting Permission Needed.";
+                pushBtn.innerText = "Enable";
+            }
+        }
+
+        function updateOverdueSystemIcon() {
+            const now = new Date().getTime();
+            const dueCount = topicsData.filter(t => !t.nextDue || now >= t.nextDue).length;
+
+            if (dueCount > 0 && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+                const lastPing = localStorage.getItem('medrecall_last_ping_aditi');
+                const hourInMs = 3600000;
+
+                if (!lastPing || (now - parseInt(lastPing)) > (12 * hourInMs)) {
+                    new Notification("MBBS Revision Due", {
+                        body: `Dr. Aditi, you have ${dueCount} clinical concept${dueCount > 1 ? 's' : ''} scheduled for review today.`,
+                        tag: "medrecall-aditi-due"
+                    });
+                    localStorage.setItem('medrecall_last_ping_aditi', now.toString());
+                }
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('iosToast');
+            const toastMsg = document.getElementById('toastMsg');
+            const toastIcon = document.getElementById('toastIcon');
+
+            toastMsg.innerText = message;
+            if (isError) {
+                toastIcon.className = "fa-solid fa-circle-exclamation text-rose-500";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 dark:text-emerald-500";
+            }
+
+            toast.classList.remove('-translate-y-12', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('-translate-y-12', 'opacity-0');
+            }, 2500);
+        }
+
+        function customConfirm(title, description, proceedBtnLabel, onConfirm) {
+            const modal = document.getElementById('customConfirmModal');
+
+            document.getElementById('confirmTitle').innerText = title;
+            document.getElementById('confirmDesc').innerText = description;
+
+            const pBtn = document.getElementById('confirmProceedBtn');
+            pBtn.innerText = proceedBtnLabel;
+
+            if (proceedBtnLabel.toLowerCase().includes('delete') || proceedBtnLabel.toLowerCase().includes('remove')) {
+                pBtn.className = "py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs rounded-xl active:scale-95 transition-all";
+            } else {
+                pBtn.className = "py-2.5 bg-appleBlue hover:bg-appleBlue/90 text-white font-bold text-xs rounded-xl active:scale-95 transition-all";
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+            }, 10);
+
+            onConfirmProceed = () => {
+                onConfirm();
+                closeConfirmModal();
+            };
+
+            document.getElementById('confirmCancelBtn').onclick = closeConfirmModal;
+            document.getElementById('confirmProceedBtn').onclick = onConfirmProceed;
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('customConfirmModal');
+            modal.classList.remove('opacity-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+        function switchTab(tabId) {
+            selectedTab = tabId;
+
+            document.getElementById('tabTodayView').classList.add('hidden');
+            document.getElementById('tabSyllabusView').classList.add('hidden');
+            document.getElementById('tabAddTopicView').classList.add('hidden');
+            document.getElementById('tabRemindersView').classList.add('hidden');
+            document.getElementById('tabEngineSpecsView').classList.add('hidden');
+
+            document.getElementById('navToday').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all";
+            document.getElementById('navSyllabus').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all";
+
+            document.getElementById('navAddTopic').className = "w-14 h-14 rounded-full bg-appleBlue text-white flex items-center justify-center shadow-lg active:scale-90 transform hover:scale-105 transition-all outline-none border-4 border-white dark:border-[#000000]";
+
+            document.getElementById('navReminders').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all";
+            document.getElementById('navEngineSpecs').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-[#8E8E93] dark:text-[#A2A2A7] hover:text-appleBlue transition-all";
+
+            if (tabId === 'Today') {
+                document.getElementById('tabTodayView').classList.remove('hidden');
+                document.getElementById('navToday').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-appleBlue transition-all";
+                renderTodayDashboard();
+                renderCalendarDays();
+            } else if (tabId === 'Syllabus') {
+                document.getElementById('tabSyllabusView').classList.remove('hidden');
+                document.getElementById('navSyllabus').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-appleBlue transition-all";
+                renderSyllabus();
+            } else if (tabId === 'AddTopic') {
+                document.getElementById('tabAddTopicView').classList.remove('hidden');
+                document.getElementById('navAddTopic').className = "w-14 h-14 rounded-full bg-appleBlue text-white flex items-center justify-center shadow-xl scale-105 transform transition-all outline-none border-4 border-appleBlue";
+                renderAddTopicView();
+            } else if (tabId === 'Reminders') {
+                document.getElementById('tabRemindersView').classList.remove('hidden');
+                document.getElementById('navReminders').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-appleBlue transition-all";
+                updatePushSettingsUI();
+            } else if (tabId === 'EngineSpecs') {
+                document.getElementById('tabEngineSpecsView').classList.remove('hidden');
+                document.getElementById('navEngineSpecs').className = "flex flex-col items-center justify-center gap-1.5 flex-1 py-1 text-appleBlue transition-all";
+            }
+
+            const subCount = Object.keys(subjectsConfig).length;
+            document.getElementById('activeSubjectCount').innerText = `${subCount} ${subCount === 1 ? 'Subject' : 'Subjects'}`;
+        }
+
+        function calculateAdaptiveNextDue(topic, score) {
+            const nowNum = new Date().getTime();
+
+            // Safe initialize repetitions counter
+            topic.repetitions = (topic.repetitions !== undefined) ? topic.repetitions : 0;
+
+            // 1. Memory quality curve adjustment
+            if (score === 'Struggled') {
+                topic.repetitions = 0;
+                topic.interval = 1;
+            } else if (score === 'Hesitant') {
+                topic.repetitions += 1;
+                if (topic.repetitions === 1) topic.interval = 2;
+                else if (topic.repetitions === 2) topic.interval = 4;
+                else topic.interval = Math.round(topic.interval * 1.8);
+            } else if (score === 'Mastered') {
+                topic.repetitions += 1;
+                if (topic.repetitions === 1) topic.interval = 4;
+                else if (topic.repetitions === 2) topic.interval = 9;
+                else topic.interval = Math.round(topic.interval * 2.6);
+            }
+
+            // 2. Dynamic Exam Compression Logic (EPC)
+            const subName = topic.subject;
+            const subMeta = subjectsConfig[subName];
+
+            if (subMeta && subMeta.examDate) {
+                const targetExamTime = new Date(subMeta.examDate + "T08:00:00").getTime();
+                const projectedNextDue = nowNum + (topic.interval * 24 * 60 * 60 * 1000);
+
+                if (projectedNextDue >= targetExamTime) {
+                    const daysUntilExam = Math.max(1, Math.floor((targetExamTime - nowNum) / (1000 * 60 * 60 * 24)));
+                    if (daysUntilExam > 3) {
+                        topic.interval = Math.max(1, daysUntilExam - 3);
+                    } else {
+                        topic.interval = 1;
+                    }
+                }
+            }
+
+            topic.confidence = score;
+            topic.lastReviewed = nowNum;
+            topic.nextDue = nowNum + (topic.interval * 24 * 60 * 60 * 1000);
+            return topic;
+        }
+
+        function initCalendarUI() {
+            renderCalendarDays();
+        }
+
+        function toggleCalendarCollapsed() {
+            const container = document.getElementById('calendarContainerBody');
+            const chevron = document.getElementById('calendarToggleChevron');
+
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                container.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function navigateCalendarMonth(direction) {
+            calendarDate.setMonth(calendarDate.getMonth() + direction);
+            renderCalendarDays();
+        }
+
+        function hasReviewsOnDay(date) {
+            const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+            const endOfDay = startOfDay + (24 * 60 * 60 * 1000) - 1;
+
+            return topicsData.some(t => {
+                if (!t.nextDue) return false;
+                return t.nextDue >= startOfDay && t.nextDue <= endOfDay;
+            });
+        }
+
+        function renderCalendarDays() {
+            const monthLabel = document.getElementById('calendarMonthYearLabel');
+            const daysGrid = document.getElementById('calendarDaysGrid');
+            if (!monthLabel || !daysGrid) return;
+
+            const year = calendarDate.getFullYear();
+            const month = calendarDate.getMonth();
+
+            const monthNames = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            monthLabel.innerText = `${monthNames[month]} ${year}`;
+
+            daysGrid.innerHTML = '';
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Populate empty blocks leading to month start day
+            for (let i = 0; i < firstDayIndex; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = "py-1.5";
+                daysGrid.appendChild(emptyCell);
+            }
+
+            const todayObj = new Date();
+
+            for (let day = 1; day <= totalDaysInMonth; day++) {
+                const cellDate = new Date(year, month, day);
+                const cellTimestamp = new Date(year, month, day).getTime();
+
+                const dayBtn = document.createElement('button');
+                dayBtn.type = "button";
+                dayBtn.className = "py-1.5 text-xs font-semibold rounded-lg relative flex flex-col items-center justify-center transition-all active:scale-90 hover:bg-neutral-100 dark:hover:bg-[#2C2C2E]";
+
+                // Add text label
+                dayBtn.innerHTML = `<span>${day}</span>`;
+
+                const isToday = todayObj.getDate() === day && todayObj.getMonth() === month && todayObj.getFullYear() === year;
+                const hasReviews = hasReviewsOnDay(cellDate);
+
+                if (isToday) {
+                    dayBtn.classList.add('text-appleBlue', 'font-extrabold');
+                }
+
+                // Check selection highlighting
+                if (selectedCalendarDay && selectedCalendarDay === cellTimestamp) {
+                    dayBtn.className = "py-1.5 text-xs font-bold rounded-lg relative flex flex-col items-center justify-center transition-all bg-appleBlue text-white hover:bg-appleBlue/90";
+                }
+
+                // Dot overlay indicators
+                if (hasReviews) {
+                    const dot = document.createElement('span');
+                    dot.className = "w-1 h-1 bg-appleBlue rounded-full absolute bottom-1";
+                    if (selectedCalendarDay && selectedCalendarDay === cellTimestamp) {
+                        dot.className = "w-1 h-1 bg-white rounded-full absolute bottom-1";
+                    }
+                    dayBtn.appendChild(dot);
+                }
+
+                dayBtn.onclick = () => selectCalendarDay(cellTimestamp);
+                daysGrid.appendChild(dayBtn);
+            }
+        }
+
+        function selectCalendarDay(timestamp) {
+            if (selectedCalendarDay === timestamp) {
+                // Toggle off if clicking the same selected date
+                selectedCalendarDay = null;
+            } else {
+                selectedCalendarDay = timestamp;
+            }
+
+            renderCalendarDays();
+            renderTodayDashboard();
+        }
+
+        function resetCalendarFilter() {
+            selectedCalendarDay = null;
+            renderCalendarDays();
+            renderTodayDashboard();
+        }
+
+        function renderTodayDashboard() {
+            const now = new Date().getTime();
+            const container = document.getElementById('dueTopicsList');
+            const listHeader = document.getElementById('scheduleListHeader');
+            const listSubheader = document.getElementById('scheduleListSubheader');
+            const resetContainer = document.getElementById('calendarResetBtnContainer');
+            const filterBadge = document.getElementById('calendarSelectedFilterText');
+
+            if (!container) return;
+
+            let filteredTopics = [];
+
+            if (selectedCalendarDay) {
+                // Filter specifically for the selected date on the calendar
+                const startOfDay = selectedCalendarDay;
+                const endOfDay = selectedCalendarDay + (24 * 60 * 60 * 1000) - 1;
+                const selDateObj = new Date(selectedCalendarDay);
+
+                filteredTopics = topicsData.filter(t => {
+                    return t.nextDue >= startOfDay && t.nextDue <= endOfDay;
+                });
+
+                const formattedDate = `${selDateObj.getDate()} ${selDateObj.toLocaleString('default', { month: 'short' })} ${selDateObj.getFullYear()}`;
+                listHeader.innerText = `Revisions: ${formattedDate}`;
+                listSubheader.innerText = `Clinical topics scheduled specifically for this day`;
+                resetContainer.classList.remove('hidden');
+                filterBadge.classList.remove('hidden');
+            } else {
+                // Standard default view: show all past due + due today topics
+                filteredTopics = topicsData.filter(t => {
+                    if (!t.nextDue) return true;
+                    return now >= t.nextDue;
+                });
+
+                listHeader.innerText = "Today's Schedule";
+                listSubheader.innerText = "Topics sorted by optimal spaced repetition intervals";
+                resetContainer.classList.add('hidden');
+                filterBadge.classList.add('hidden');
+            }
+
+            // Standard confidence-based ranking
+            filteredTopics.sort((a, b) => {
+                if (a.confidence === 'Struggled' && b.confidence !== 'Struggled') return -1;
+                if (b.confidence === 'Struggled' && a.confidence !== 'Struggled') return 1;
+                return (a.nextDue || 0) - (b.nextDue || 0);
+            });
+
+            // Calculate daily statistics
+            const dueCount = topicsData.filter(t => !t.nextDue || now >= t.nextDue).length;
+            document.getElementById('dueBadge').innerText = `${dueCount} Due`;
+
+            const total = topicsData.length;
+            const masteredCount = topicsData.filter(t => t.confidence === 'Mastered').length;
+            const velocity = total > 0 ? Math.round((masteredCount / total) * 100) : 0;
+
+            document.getElementById('velocityPercent').innerText = `${velocity}%`;
+            document.getElementById('velocityDesc').innerText = `Aditi, ${masteredCount} out of ${total} high-yield topics are preserved at peak retention.`;
+
+            // SVG dynamic ring animation
+            const ring = document.getElementById('velocityRing');
+            const circumference = 2 * Math.PI * 26;
+            const offset = circumference - (velocity / 100) * circumference;
+            ring.style.strokeDashoffset = offset;
+
+            if (filteredTopics.length === 0) {
+                container.innerHTML = `
+                    <div class="apple-card p-8 text-center space-y-2 bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                        <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 border border-emerald-100 dark:border-emerald-900/40 flex items-center justify-center mx-auto">
+                            <i class="fa-solid fa-circle-check"></i>
+                        </div>
+                        <h4 class="font-bold text-[#1C1C1E] dark:text-white text-xs">All Clear, Aditi!</h4>
+                        <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] max-w-[210px] mx-auto leading-relaxed">No revisions scheduled for this selection. Log your latest studies using the '+' tab.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = '';
+            filteredTopics.forEach(topic => {
+                let badgeStyle = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40";
+                if (topic.confidence === 'Hesitant') badgeStyle = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40";
+                if (topic.confidence === 'Mastered') badgeStyle = "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40";
+
+                const isNew = !topic.lastReviewed;
+
+                const item = document.createElement('div');
+                item.className = "apple-card p-4 flex items-center justify-between bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl hover:border-appleBlue/30 dark:hover:border-appleBlue/50 transition-all cursor-pointer ios-active-scale shadow-xs";
+                item.onclick = () => openReviewModal(topic);
+
+                const examText = getSubjectExamCountdownText(topic.subject);
+
+                item.innerHTML = `
+                    <div class="space-y-1 pr-3 flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[8px] font-extrabold uppercase bg-neutral-100 dark:bg-[#2C2C2E] border border-neutral-200/60 dark:border-neutral-700/60 text-[#8E8E93] dark:text-[#A2A2A7] px-2 py-0.5 rounded">${topic.subject}</span>
+                            <span class="text-[8px] font-extrabold px-1.5 py-0.5 rounded ${badgeStyle}">${isNew ? 'New Log' : topic.confidence}</span>
+                        </div>
+                        <h4 class="font-bold text-[#1C1C1E] dark:text-white text-sm truncate">${topic.name}</h4>
+                        <p class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7] font-medium"><i class="fa-solid fa-clock text-[8px] mr-1"></i>${examText}</p>
+                    </div>
+                    <div class="text-right shrink-0 flex flex-col items-end gap-1.5">
+                        <div class="w-6 h-6 rounded-full bg-neutral-50 dark:bg-[#2C2C2E] border border-neutral-200/80 dark:border-neutral-700/80 text-appleBlue flex items-center justify-center">
+                            <i class="fa-solid fa-chevron-right text-[8px]"></i>
+                        </div>
+                        <span class="text-[7px] font-bold text-appleBlue uppercase tracking-wider">${isNew ? 'Initial Run' : 'Revise Now'}</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function getSubjectExamCountdownText(subjectName) {
+            const config = subjectsConfig[subjectName];
+            if (!config || !config.examDate) return "Exam date unset";
+
+            const targetTime = new Date(config.examDate + "T00:00:00").getTime();
+            const now = new Date();
+            const todayTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+            const distance = targetTime - todayTime;
+
+            if (distance > 0) {
+                const days = Math.round(distance / (1000 * 60 * 60 * 24));
+                return `${days} ${days === 1 ? 'day' : 'days'} to exam`;
+            } else if (distance === 0) {
+                return "🚨 Exam is today!";
+            } else {
+                return "Exam passed";
+            }
+        }
+
+        function renderSyllabus() {
+            const container = document.getElementById('syllabusAccordionContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const subjectsList = Object.keys(subjectsConfig).sort();
+            const searchTerm = document.getElementById('syllabusSearch').value.toLowerCase();
+
+            if (subjectsList.length === 0) {
+                container.innerHTML = `
+                    <div class="apple-card p-8 text-center bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm">
+                        <i class="fa-solid fa-folder-open text-[#8E8E93] dark:text-[#A2A2A7] text-xl mb-2"></i>
+                        <h4 class="font-bold text-[#1C1C1E] dark:text-white text-xs">No Active Subjects</h4>
+                        <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] max-w-[210px] mx-auto leading-relaxed">Add a medical topic to map out custom dynamic subjects.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            subjectsList.forEach(subjectName => {
+                let list = topicsData.filter(t => t.subject === subjectName);
+                if (searchTerm) {
+                    list = list.filter(t => t.name.toLowerCase().includes(searchTerm));
+                }
+
+                if (searchTerm && list.length === 0) return;
+
+                const totalInSubject = list.length;
+                const masteredInSubject = list.filter(t => t.confidence === 'Mastered').length;
+                const ratioPct = totalInSubject > 0 ? Math.round((masteredInSubject / totalInSubject) * 100) : 0;
+
+                const safeId = subjectName.replace(/[^a-zA-Z0-9]/g, '');
+                const currentExamDateVal = subjectsConfig[subjectName].examDate || "";
+
+                const countdownLabel = getSubjectExamCountdownText(subjectName);
+
+                const block = document.createElement('div');
+                block.className = "apple-card overflow-hidden bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder rounded-2xl shadow-sm";
+                block.innerHTML = `
+                    <div class="p-4 flex flex-col space-y-3 bg-white dark:bg-appleDarkCard">
+                        <div class="flex items-center justify-between">
+                            <div onclick="toggleAccordion('${safeId}')" class="flex items-center gap-3 cursor-pointer select-none flex-1">
+                                <div class="w-8 h-8 rounded-xl bg-appleBlue/5 dark:bg-appleBlue/10 text-appleBlue border border-appleBlue/10 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-folder-open text-xs"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-xs text-[#1C1C1E] dark:text-white">${subjectName}</h4>
+                                    <p class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7] mt-0.5">${totalInSubject} topics • ${ratioPct}% mastered</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-2">
+                                <button onclick="triggerSubjectDelete('${subjectName}')" class="w-7 h-7 rounded-lg bg-appleLightBg dark:bg-[#2C2C2E] hover:bg-rose-50 hover:text-rose-600 text-neutral-400 dark:text-neutral-500 flex items-center justify-center transition-all ios-active-scale" title="Delete subject and all nested topics">
+                                    <i class="fa-solid fa-trash text-[10px]"></i>
+                                </button>
+                                <button onclick="toggleAccordion('${safeId}')" class="w-7 h-7 rounded-lg bg-appleLightBg dark:bg-[#2C2C2E] text-neutral-500 dark:text-neutral-400 flex items-center justify-center transition-all">
+                                    <i id="chevron-${safeId}" class="fa-solid fa-chevron-down text-[9px] transition-transform duration-200"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mini Inline Exam Date Selector -->
+                        <div class="flex items-center justify-between border-t border-appleLightBorder/40 dark:border-appleDarkBorder/40 pt-2.5">
+                            <span class="text-[9px] font-bold text-[#8E8E93] dark:text-[#A2A2A7] uppercase tracking-wider flex items-center gap-1">
+                                <i class="fa-solid fa-calendar text-[8px] text-appleBlue"></i> Target Exam:
+                            </span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-bold text-appleBlue">${countdownLabel}</span>
+                                <input type="date" value="${currentExamDateVal}" onchange="handleSubjectExamDateChange('${subjectName}', this.value)" class="text-xs bg-appleLightBg dark:bg-appleDarkBg border border-appleLightBorder dark:border-appleDarkBorder rounded-md px-1.5 py-1 text-neutral-700 dark:text-neutral-300 focus:outline-none focus:ring-1 focus:ring-appleBlue cursor-pointer">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="body-${safeId}" class="px-4 pb-4 hidden border-t border-appleLightBorder dark:border-appleDarkBorder pt-3 space-y-2 max-h-60 overflow-y-auto pr-1 bg-appleLightBg/20 dark:bg-[#1C1C1E]/20">
+                        ${list.length === 0 ? `
+                            <p class="text-[10px] text-[#8E8E93] dark:text-[#A2A2A7] text-center py-2">No active topics inside this subject loop.</p>
+                        ` : list.map(topic => {
+                    let itemBadge = "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40";
+                    if (topic.confidence === 'Hesitant') itemBadge = "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40";
+                    if (topic.confidence === 'Mastered') itemBadge = "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40";
+
+                    const isOverdue = !topic.nextDue || new Date().getTime() >= topic.nextDue;
+
+                    return `
+                                <div class="p-2.5 bg-white dark:bg-[#1C1C1E] rounded-xl border border-appleLightBorder dark:border-appleDarkBorder flex items-center justify-between gap-2 text-xs">
+                                    <div class="space-y-0.5 min-w-0 flex-1">
+                                        <h5 class="font-bold text-[#1C1C1E] dark:text-white flex items-center gap-1.5 truncate">
+                                            ${topic.name}
+                                            ${isOverdue ? `<span class="text-[7px] font-extrabold bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 px-1.5 py-0.2 rounded">DUE</span>` : ''}
+                                        </h5>
+                                        <p class="text-[8px] text-[#8E8E93] dark:text-[#A2A2A7] font-semibold uppercase">Interval: ${topic.interval} ${topic.interval === 1 ? 'day' : 'days'}</p>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <span class="text-[8px] font-extrabold px-2 py-0.5 rounded ${itemBadge}">${topic.confidence}</span>
+                                        <button onclick="triggerTopicDelete('${topic.id}')" class="w-6 h-6 rounded-lg bg-white dark:bg-appleDarkCard border border-appleLightBorder dark:border-appleDarkBorder text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center ios-active-scale" title="Delete topic">
+                                            <i class="fa-solid fa-trash text-[8px]"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                }).join('')}
+                    </div>
+                `;
+                container.appendChild(block);
+            });
+        }
+
+        function toggleAccordion(safeId) {
+            const body = document.getElementById('body-' + safeId);
+            const chev = document.getElementById('chevron-' + safeId);
+
+            if (body.classList.contains('hidden')) {
+                body.classList.remove('hidden');
+                chev.classList.add('rotate-180');
+            } else {
+                body.classList.add('hidden');
+                chev.classList.remove('rotate-180');
+            }
+        }
+
+        function handleSubjectExamDateChange(subjectName, newDate) {
+            if (!newDate) return;
+            subjectsConfig[subjectName].examDate = newDate;
+
+            topicsData.forEach(topic => {
+                if (topic.subject === subjectName) {
+                    calculateAdaptiveNextDue(topic, topic.confidence);
+                }
+            });
+
+            saveLocalCache();
+            showToast(`Exam updated for ${subjectName}`);
+            renderSyllabus();
+            renderCalendarDays();
+        }
+
+        function renderAddTopicView() {
+            setInitialFormConfidence('Hesitant');
+            const container = document.getElementById('quickSubjectSuggestions');
+            if (!container) return;
+            const subjectsList = Object.keys(subjectsConfig).sort();
+
+            if (subjectsList.length === 0) {
+                container.innerHTML = `
+                    <span class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7]">Suggestions:</span>
+                    <button type="button" onclick="fillSubjectField('Ophthalmology')" class="text-[8px] font-bold bg-white dark:bg-[#2C2C2E] text-appleBlue border border-appleLightBorder dark:border-appleDarkBorder px-2 py-1 rounded transition-all">Ophthalmology</button>
+                    <button type="button" onclick="fillSubjectField('ENT')" class="text-[8px] font-bold bg-white dark:bg-[#2C2C2E] text-appleBlue border border-appleLightBorder dark:border-appleDarkBorder px-2 py-1 rounded transition-all">ENT</button>
+                    <button type="button" onclick="fillSubjectField('Medicine')" class="text-[8px] font-bold bg-white dark:bg-[#2C2C2E] text-appleBlue border border-appleLightBorder dark:border-appleDarkBorder px-2 py-1 rounded transition-all">Medicine</button>
+                `;
+                return;
+            }
+
+            let pillsHTML = `<span class="text-[9px] text-[#8E8E93] dark:text-[#A2A2A7] shrink-0 self-center">Tap to fill:</span>`;
+            subjectsList.slice(-4).forEach(sub => {
+                pillsHTML += `
+                    <button type="button" onclick="fillSubjectField('${sub}')" class="text-[8px] font-extrabold bg-white dark:bg-appleDarkCard hover:bg-appleLightBg dark:hover:bg-[#2C2C2E] text-[#1C1C1E] dark:text-white border border-appleLightBorder dark:border-appleDarkBorder px-2.5 py-1 rounded transition-all active:scale-95">${sub}</button>
+                `;
+            });
+            container.innerHTML = pillsHTML;
+        }
+
+        function fillSubjectField(val) {
+            document.getElementById('addSubjectInput').value = val;
+        }
+
+        function setInitialFormConfidence(level) {
+            currentFormConfidence = level;
+
+            const btnStruggled = document.getElementById('btnConfStruggled');
+            const btnHesitant = document.getElementById('btnConfHesitant');
+            const btnMastered = document.getElementById('btnConfMastered');
+
+            btnStruggled.className = "py-2.5 rounded-xl text-center font-bold text-xs border border-transparent bg-rose-50/70 dark:bg-rose-950/10 text-rose-600 dark:text-rose-400 transition-all ios-active-scale";
+            btnHesitant.className = "py-2.5 rounded-xl text-center font-bold text-xs border border-transparent bg-amber-50/70 dark:bg-amber-950/10 text-amber-700 dark:text-amber-400 transition-all ios-active-scale";
+            btnMastered.className = "py-2.5 rounded-xl text-center font-bold text-xs border border-transparent bg-emerald-50/70 dark:bg-emerald-950/10 text-emerald-600 dark:text-emerald-400 transition-all ios-active-scale";
+
+            if (level === 'Struggled') {
+                btnStruggled.className = "py-2.5 rounded-xl text-center font-bold text-xs border-2 border-rose-500 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 transition-all ios-active-scale";
+            } else if (level === 'Hesitant') {
+                btnHesitant.className = "py-2.5 rounded-xl text-center font-bold text-xs border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 transition-all ios-active-scale";
+            } else if (level === 'Mastered') {
+                btnMastered.className = "py-2.5 rounded-xl text-center font-bold text-xs border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 transition-all ios-active-scale";
+            }
+        }
+
+        function handleNewTopicSubmit(event) {
+            event.preventDefault();
+
+            const rawSubject = document.getElementById('addSubjectInput').value.trim();
+            const rawTopic = document.getElementById('addTopicInput').value.trim();
+
+            if (!rawSubject || !rawTopic) {
+                showToast("Please complete both fields.", true);
+                return;
+            }
+
+            const subject = rawSubject.charAt(0).toUpperCase() + rawSubject.slice(1);
+            const name = rawTopic;
+
+            const isDuplicated = topicsData.some(t => t.name.toLowerCase() === name.toLowerCase() && t.subject.toLowerCase() === subject.toLowerCase());
+            if (isDuplicated) {
+                showToast("Topic already logged in this subject loop!", true);
+                return;
+            }
+
+            if (!subjectsConfig[subject]) {
+                const defaultDate = new Date(new Date().getTime() + (90 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0];
+                subjectsConfig[subject] = { examDate: defaultDate };
+            }
+
+            const initialInterval = currentFormConfidence === 'Struggled' ? 1 : (currentFormConfidence === 'Hesitant' ? 2 : 4);
+            const nowNum = new Date().getTime();
+
+            const newTopicObj = {
+                id: 'topic-' + Math.random().toString(36).substr(2, 9),
+                subject: subject,
+                name: name,
+                confidence: currentFormConfidence,
+                repetitions: currentFormConfidence === 'Struggled' ? 0 : 1,
+                interval: initialInterval,
+                lastReviewed: nowNum,
+                nextDue: nowNum + (initialInterval * 24 * 60 * 60 * 1000)
+            };
+
+            const tempResult = calculateAdaptiveNextDue(newTopicObj, currentFormConfidence);
+
+            topicsData.push(tempResult);
+            saveLocalCache();
+
+            showToast(`Logged '${name}' successfully`);
+
+            document.getElementById('addSubjectInput').value = '';
+            document.getElementById('addTopicInput').value = '';
+
+            switchTab('Today');
+        }
+
+        function openReviewModal(topic) {
+            activeReviewTopic = topic;
+
+            document.getElementById('modalSubjectBadge').innerText = topic.subject;
+            document.getElementById('modalTopicTitle').innerText = topic.name;
+
+            document.getElementById('recallShield').classList.remove('hidden');
+            document.getElementById('qualitySelectorArea').classList.add('hidden');
+
+            const modal = document.getElementById('reviewSheet');
+            const container = modal.firstElementChild;
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.add('opacity-100');
+                container.classList.remove('translate-y-full');
+            }, 30);
+        }
+
+        function unveilRecallNotes() {
+            document.getElementById('recallShield').classList.add('hidden');
+            document.getElementById('qualitySelectorArea').classList.remove('hidden');
+        }
+
+        function closeReviewModal() {
+            const modal = document.getElementById('reviewSheet');
+            const container = modal.firstElementChild;
+
+            container.classList.add('translate-y-full');
+            modal.classList.remove('opacity-100');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeReviewTopic = null;
+            }, 300);
+        }
+
+        function submitRecallResult(score) {
+            if (!activeReviewTopic) return;
+
+            const targetObj = topicsData.find(t => t.id === activeReviewTopic.id);
+            if (targetObj) {
+                calculateAdaptiveNextDue(targetObj, score);
+                saveLocalCache();
+
+                showToast(`Re-scheduled base interval: ${score}`);
+                closeReviewModal();
+                renderTodayDashboard();
+                renderCalendarDays();
+            }
+        }
+
+        function triggerTopicDelete(id) {
+            const topic = topicsData.find(t => t.id === id);
+            if (!topic) return;
+
+            customConfirm(
+                "Delete Topic?",
+                `Are you sure you want to remove '${topic.name}'?`,
+                "Delete",
+                () => {
+                    topicsData = topicsData.filter(t => t.id !== id);
+                    saveLocalCache();
+                    showToast("Topic deleted");
+                    renderSyllabus();
+                    renderCalendarDays();
+                }
+            );
+        }
+
+        function triggerSubjectDelete(subjectName) {
+            customConfirm(
+                "Delete Entire Subject?",
+                `Delete '${subjectName}'? This will completely clear all nested topics!`,
+                "Delete All",
+                () => {
+                    delete subjectsConfig[subjectName];
+                    topicsData = topicsData.filter(t => t.subject !== subjectName);
+
+                    saveLocalCache();
+                    showToast(`Subject and nested topics removed`);
+                    renderSyllabus();
+                    renderCalendarDays();
+                }
+            );
+        }
+    </script>
+</body>
+
+</html>
